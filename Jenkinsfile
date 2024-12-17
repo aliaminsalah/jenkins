@@ -9,52 +9,6 @@ pipeline {
     }
 
     stages {
-        stage('Build Image') {
-            steps {
-                script {
-                    sh """
-                        docker build -t ${IMAGE_NAME}:latest .
-                    """
-                }
-            }
-        }
-
-        stage('Run Container') {
-            steps {
-                script {
-                    // Ensure any existing container is removed
-                    sh """
-                        docker rm -f ${CONTAINER_NAME} || true
-                        docker run -d --name ${CONTAINER_NAME} -p ${DOCKER_PORT}:${DOCKER_PORT} ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
-                    """
-                }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                script {
-                    // Verify the container is running
-                    sh """
-                        docker ps | grep ${CONTAINER_NAME}
-                    """
-                }
-            }
-        }
-
-        stage('Push Image') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh """
-                            docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
-                            docker push ${IMAGE_NAME}:latest
-                        """
-                    }
-                }
-            }
-        }
-
         stage('Play Ansible') {
             steps {
                 script {
@@ -67,15 +21,4 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            script {
-                // Cleanup any resources used
-                sh """
-                    docker rm -f ${CONTAINER_NAME} || true
-                    docker rmi ${IMAGE_NAME}:latest || true
-                """
-            }
-        }
-    }
 }
